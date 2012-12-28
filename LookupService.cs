@@ -25,7 +25,7 @@ using System.Net;
 using System.Runtime.CompilerServices;
 
 public class LookupService{
-    private FileStream file = null;
+    private Stream file = null;
     private DatabaseInfo databaseInfo = null;
     private Object ioLock = new Object();
     byte databaseType = Convert.ToByte(DatabaseInfo.COUNTRY_EDITION);
@@ -116,6 +116,16 @@ public class LookupService{
 	"Virgin Islands, British","Virgin Islands, U.S.","Vietnam","Vanuatu","Wallis and Futuna","Samoa","Yemen","Mayotte","Serbia","South Africa",
 	"Zambia","Montenegro","Zimbabwe","Anonymous Proxy","Satellite Provider","Other","Aland Islands","Guernsey","Isle of Man","Jersey",
   "Saint Barthelemy","Saint Martin", "Bonaire, Saint Eustatius and Saba"};
+
+    public LookupService(Stream databaseStream, int options){
+        if (databaseStream == null)
+            throw new ArgumentException(String.Empty, @"databaseStream");
+        if (!databaseStream.CanRead || !databaseStream.CanSeek)
+            throw new ArgumentException(@"input stream must support reading and seeking", "databaseStream");
+        this.file = databaseStream;
+        dboptions = options;
+        init();
+    }
 
     public LookupService(String databaseFile, int options){
         try {
