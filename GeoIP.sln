@@ -1,0 +1,20 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 11.00
+# Visual Studio 2010
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GeoIP", "GeoIP.csproj", "{DCE060EB-F9F9-476F-8D88-CE5A0138FEF1}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{DCE060EB-F9F9-476F-8D88-CE5A0138FEF1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DCE060EB-F9F9-476F-8D88-CE5A0138FEF1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DCE060EB-F9F9-476F-8D88-CE5A0138FEF1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DCE060EB-F9F9-476F-8D88-CE5A0138FEF1}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
