@@ -6,11 +6,11 @@ using MaxMind.GeoIP;
 // General Information about an assembly is controlled through the following 
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
-[assembly: AssemblyTitle("MaxMind.GeoIP")]
-[assembly: AssemblyDescription("MaxMind GeoIP C# API")]
+[assembly: AssemblyTitle("MaxMind.GeoIPc")]
+[assembly: AssemblyDescription("MaxMind GeoIP C# API (Criteo updated)")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("MaxMind")]
-[assembly: AssemblyProduct("MaxMind.GeoIP")]
+[assembly: AssemblyProduct("MaxMind.GeoIPc")]
 [assembly: AssemblyCopyright("Copyright © MaxMind 2008")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
