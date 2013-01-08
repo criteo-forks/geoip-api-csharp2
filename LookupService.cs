@@ -142,9 +142,9 @@ namespace MaxMind.GeoIP
                 dboptions = options;
                 init();
             }
-            catch (System.SystemException)
+            catch (System.SystemException e)
             {
-                Console.Write("cannot open file " + databaseFile + "\n");
+                throw new Exception("cannot open file '" + databaseFile + "'", e);
             }
         }
 
@@ -276,24 +276,13 @@ namespace MaxMind.GeoIP
             //catch (UnknownHostException e) {
             catch (Exception e)
             {
-                Console.Write(e.Message);
-                return UNKNOWN_COUNTRY;
+                throw new Exception("Error parsing ip address: '" + ipAddress + "'", e);
             }
             return getCountryV6(addr);
         }
         public Country getCountry(String ipAddress)
         {
-            IPAddress addr;
-            try
-            {
-                addr = IPAddress.Parse(ipAddress);
-            }
-            //catch (UnknownHostException e) {
-            catch (Exception e)
-            {
-                Console.Write(e.Message);
-                return UNKNOWN_COUNTRY;
-            }
+            IPAddress addr = parseIP(ipAddress);
             //  return getCountry(bytestoLong(addr.GetAddressBytes()));
             return getCountry(bytestoLong(addr.GetAddressBytes()));
         }
@@ -367,16 +356,7 @@ namespace MaxMind.GeoIP
 
         public int getID(String ipAddress)
         {
-            IPAddress addr;
-            try
-            {
-                addr = IPAddress.Parse(ipAddress);
-            }
-            catch (Exception e)
-            {
-                Console.Write(e.Message);
-                return 0;
-            }
+            IPAddress addr = parseIP(ipAddress);
             return getID(bytestoLong(addr.GetAddressBytes()));
         }
 
@@ -486,7 +466,7 @@ namespace MaxMind.GeoIP
             }
             catch (Exception e)
             {
-                Console.Write(e.Message);
+                throw new Exception("Error reading database info", e);
                 //e.printStackTrace();
             }
             return new DatabaseInfo("");
@@ -497,17 +477,7 @@ namespace MaxMind.GeoIP
         }
         public Region getRegion(String str)
         {
-            IPAddress addr;
-            try
-            {
-                addr = IPAddress.Parse(str);
-            }
-            catch (Exception e)
-            {
-                Console.Write(e.Message);
-                return null;
-            }
-
+            IPAddress addr = parseIP(str);
             return getRegion(bytestoLong(addr.GetAddressBytes()));
         }
 
@@ -576,33 +546,13 @@ namespace MaxMind.GeoIP
         }
         public Location getLocationV6(String str)
         {
-            IPAddress addr;
-            try
-            {
-                addr = IPAddress.Parse(str);
-            }
-            catch (Exception e)
-            {
-                Console.Write(e.Message);
-                return null;
-            }
-
+            IPAddress addr = parseIP(str);
             return getLocationV6(addr);
         }
 
         public Location getLocation(String str)
         {
-            IPAddress addr;
-            try
-            {
-                addr = IPAddress.Parse(str);
-            }
-            catch (Exception e)
-            {
-                Console.Write(e.Message);
-                return null;
-            }
-
+            IPAddress addr = parseIP(str);
             return getLocation(bytestoLong(addr.GetAddressBytes()));
         }
 
@@ -707,9 +657,9 @@ namespace MaxMind.GeoIP
                     }
                 }
             }
-            catch (IOException)
+            catch (IOException e)
             {
-                Console.Write("IO Exception while seting up segments");
+                throw new Exception("IO Exception while seting up segments", e);
             }
             return record;
         }
@@ -813,9 +763,9 @@ namespace MaxMind.GeoIP
                     }
                 }
             }
-            catch (IOException)
+            catch (IOException e)
             {
-                Console.Write("IO Exception while seting up segments");
+                throw new Exception("IO Exception while seting up segments", e);
             }
             return record;
         }
@@ -826,33 +776,13 @@ namespace MaxMind.GeoIP
 
         public String getOrgV6(String str)
         {
-            IPAddress addr;
-            try
-            {
-                addr = IPAddress.Parse(str);
-            }
-            //catch (UnknownHostException e) {
-            catch (Exception e)
-            {
-                Console.Write(e.Message);
-                return null;
-            }
+            IPAddress addr = parseIP(str);
             return getOrgV6(addr);
         }
 
         public String getOrg(String str)
         {
-            IPAddress addr;
-            try
-            {
-                addr = IPAddress.Parse(str);
-            }
-            //catch (UnknownHostException e) {
-            catch (Exception e)
-            {
-                Console.Write(e.Message);
-                return null;
-            }
+            IPAddress addr = parseIP(str);
             return getOrg(bytestoLong(addr.GetAddressBytes()));
         }
 
@@ -896,10 +826,9 @@ namespace MaxMind.GeoIP
                 org_buf = new String(buf2, 0, str_length);
                 return org_buf;
             }
-            catch (IOException)
+            catch (IOException e)
             {
-                Console.Write("IO Exception");
-                return null;
+                throw new Exception("IO Exception while getting organization", e);
             }
         }
 
@@ -943,10 +872,9 @@ namespace MaxMind.GeoIP
                 org_buf = new String(buf2, 0, str_length);
                 return org_buf;
             }
-            catch (IOException)
+            catch (IOException e)
             {
-                Console.Write("IO Exception");
-                return null;
+                throw new Exception("IO Exception while getting organization", e);
             }
         }
 
@@ -977,9 +905,9 @@ namespace MaxMind.GeoIP
                         }
                     }
                 }
-                catch (IOException)
+                catch (IOException e)
                 {
-                    Console.Write("IO Exception");
+                    throw new Exception("IO Exception while getting country", e);
                 }
                 for (int i = 0; i < 2; i++)
                 {
@@ -1018,9 +946,7 @@ namespace MaxMind.GeoIP
             }
 
             // shouldn't reach here
-            Console.Write("Error Seeking country while Seeking " + ipAddress);
-            return 0;
-
+            throw new Exception("Error Seeking country while Seeking " + ipAddress);
         }
 
         [MethodImpl(MethodImplOptions.Synchronized)]
@@ -1049,9 +975,9 @@ namespace MaxMind.GeoIP
                         }
                     }
                 }
-                catch (IOException)
+                catch (IOException e)
                 {
-                    Console.Write("IO Exception");
+                    throw new Exception("IO Exception while getting country", e);
                 }
                 for (int i = 0; i < 2; i++)
                 {
@@ -1086,9 +1012,7 @@ namespace MaxMind.GeoIP
             }
 
             // shouldn't reach here
-            Console.Write("Error Seeking country while Seeking " + ipAddress);
-            return 0;
-
+            throw new Exception("Error Seeking country while Seeking " + ipAddress);
         }
         private static long swapbytes(long ipAddress)
         {
@@ -1114,5 +1038,12 @@ namespace MaxMind.GeoIP
             return (int)b & 0xFF;
         }
 
+        private static IPAddress parseIP(string ipString)
+        {
+            IPAddress value;
+            if (!IPAddress.TryParse(ipString, out value))
+                throw new Exception("Error parsing ip string: '" + ipString + "'");
+            return value;
+        }
     }
 }
