@@ -403,50 +403,84 @@ namespace MaxMind.GeoIP
             }
             try
             {
-                // Synchronize since we're accessing the database file.
-                lock (ioLock)
+                if ((dboptions & GEOIP_MEMORY_CACHE) == 1)
                 {
-                    bool hasStructureInfo = false;
-                    byte[] delim = new byte[3];
-                    // Advance to part of file where database info is stored.
-                    file.Seek(-3, SeekOrigin.End);
-                    for (int i = 0; i < STRUCTURE_INFO_MAX_SIZE; i++)
+                    int indexStart = -1;
+                    int indexEnd = dbbuffer.Length;
+                    for (int i = dbbuffer.Length - STRUCTURE_INFO_MAX_SIZE - 1; i < dbbuffer.Length; i++)
                     {
-                        file.Read(delim, 0, 3);
-                        if (delim[0] == 255 && delim[1] == 255 && delim[2] == 255)
+                        if (dbbuffer[i + 0] == 255 && dbbuffer[i + 1] == 255 && dbbuffer[i + 2] == 255)
                         {
-                            hasStructureInfo = true;
+                            indexEnd = i;
                             break;
                         }
-                        file.Seek(-4, SeekOrigin.Current);
                     }
-                    if (hasStructureInfo)
+                    for (int i = dbbuffer.Length - 1; i > dbbuffer.Length - DATABASE_INFO_MAX_SIZE; i--)
                     {
-                        file.Seek(-6, SeekOrigin.Current);
-                    }
-                    else
-                    {
-                        // No structure info, must be pre Sep 2002 database, go back to end.
-                        file.Seek(-3, SeekOrigin.End);
-                    }
-                    // Find the database info string.
-                    for (int i = 0; i < DATABASE_INFO_MAX_SIZE; i++)
-                    {
-                        file.Read(delim, 0, 3);
-                        if (delim[0] == 0 && delim[1] == 0 && delim[2] == 0)
+                        if (dbbuffer[i - 0] == 0 && dbbuffer[i - 1] == 0 && dbbuffer[i - 2] == 0)
                         {
-                            byte[] dbInfo = new byte[i];
-                            char[] dbInfo2 = new char[i];
-                            file.Read(dbInfo, 0, i);
-                            for (int a0 = 0; a0 < i; a0++)
-                            {
-                                dbInfo2[a0] = Convert.ToChar(dbInfo[a0]);
-                            }
-                            // Create the database info object using the string.
-                            this.databaseInfo = new DatabaseInfo(new String(dbInfo2));
-                            return databaseInfo;
+                            indexStart = i + 1;
+                            break;
                         }
-                        file.Seek(-4, SeekOrigin.Current);
+                    }
+                    if (indexStart == -1)
+                        throw new IOException("databaseInfo: buffer is corrupted.");
+                    char[] dbInfo = new char[indexEnd - indexStart];
+                    for (int a0 = indexStart, i = 0; a0 < indexEnd; a0++, i++)
+                    {
+                        dbInfo[i] = Convert.ToChar(dbbuffer[a0]);
+                    }
+                    // Create the database info object using the string.
+                    this.databaseInfo = new DatabaseInfo(new String(dbInfo));
+                    return databaseInfo;
+                }
+                else
+                {
+                    // Synchronize since we're accessing the database file.
+                    lock (ioLock)
+                    {
+                        bool hasStructureInfo = false;
+                        byte[] delim = new byte[3];
+                        // Advance to part of file where database info is stored.
+                        file.Seek(-3, SeekOrigin.End);
+                        for (int i = 0; i < STRUCTURE_INFO_MAX_SIZE; i++)
+                        {
+                            file.Read(delim, 0, 3);
+                            if (delim[0] == 255 && delim[1] == 255 && delim[2] == 255)
+                            {
+                                hasStructureInfo = true;
+                                break;
+                            }
+                            file.Seek(-4, SeekOrigin.Current);
+                        }
+                        if (hasStructureInfo)
+                        {
+                            file.Seek(-6, SeekOrigin.Current);
+                        }
+                        else
+                        {
+                            // No structure info, must be pre Sep 2002 database, go back to end.
+                            file.Seek(-3, SeekOrigin.End);
+                        }
+                        // Find the database info string.
+                        for (int i = 0; i < DATABASE_INFO_MAX_SIZE; i++)
+                        {
+                            file.Read(delim, 0, 3);
+                            if (delim[0] == 0 && delim[1] == 0 && delim[2] == 0)
+                            {
+                                byte[] dbInfo = new byte[i];
+                                char[] dbInfo2 = new char[i];
+                                file.Read(dbInfo, 0, i);
+                                for (int a0 = 0; a0 < i; a0++)
+                                {
+                                    dbInfo2[a0] = Convert.ToChar(dbInfo[a0]);
+                                }
+                                // Create the database info object using the string.
+                                this.databaseInfo = new DatabaseInfo(new String(dbInfo2));
+                                return databaseInfo;
+                            }
+                            file.Seek(-4, SeekOrigin.Current);
+                        }
                     }
                 }
             }
