@@ -23,6 +23,7 @@ using System;
 using System.IO;
 using System.Net;
 using System.Runtime.CompilerServices;
+using System.Collections.Generic;
 
 namespace MaxMind.GeoIP
 {
@@ -89,7 +90,7 @@ namespace MaxMind.GeoIP
 	"TZ","UA","UG","UM","US","UY","UZ","VA","VC","VE",
 	"VG","VI","VN","VU","WF","WS","YE","YT","RS","ZA",
 	"ZM","ME","ZW","A1","A2","O1","AX","GG","IM","JE",
-        "BL","MF", "BQ", "SS", "O1"
+    "BL","MF", "BQ", "SS", "O1"
 	};
 
         private static String[] countryName = {
@@ -118,7 +119,7 @@ namespace MaxMind.GeoIP
 	"Tanzania, United Republic of","Ukraine","Uganda","United States Minor Outlying Islands","United States","Uruguay","Uzbekistan","Holy See (Vatican City State)","Saint Vincent and the Grenadines","Venezuela",
 	"Virgin Islands, British","Virgin Islands, U.S.","Vietnam","Vanuatu","Wallis and Futuna","Samoa","Yemen","Mayotte","Serbia","South Africa",
 	"Zambia","Montenegro","Zimbabwe","Anonymous Proxy","Satellite Provider","Other","Aland Islands","Guernsey","Isle of Man","Jersey",
-  "Saint Barthelemy","Saint Martin", "Bonaire, Saint Eustatius and Saba", "South Sudan", "Other"};
+    "Saint Barthelemy","Saint Martin", "Bonaire, Saint Eustatius and Saba", "South Sudan", "Other"};
 
         public LookupService(Stream databaseStream, int options)
         {
@@ -663,46 +664,146 @@ namespace MaxMind.GeoIP
             }
             return record;
         }
-        [MethodImpl(MethodImplOptions.Synchronized)]
-        public Location getLocation(long ipnum)
-        {
-            int record_pointer;
-            byte[] record_buf = new byte[FULL_RECORD_LENGTH];
-            char[] record_buf2 = new char[FULL_RECORD_LENGTH];
-            int record_buf_offset = 0;
-            Location record = new Location();
-            int str_length = 0;
-            int j, Seek_country;
-            double latitude = 0, longitude = 0;
 
+
+    [MethodImpl(MethodImplOptions.Synchronized)]
+    public Location getLocation(long ipnum)
+    {
+        return getRecord(SeekCountry(ipnum));
+    }
+
+    /// <summary>
+    /// Warning : this consumes much more heap & stack space than getLocation()
+    /// </summary>
+    public IEnumerable<Location> Walk()
+    {
+        ISet<int> records = new SortedSet<int>();
+
+        foreach (int record in WalkRecords(0, 31))
+        {
+            records.Add(record);
+        }
+
+        IList<Location> locations = new List<Location>(records.Count);
+
+        foreach (int record in records)
+        {
+            Location l = getRecord(record);
+            if (l != null)
+                locations.Add(l);
+        }
+
+        return locations;
+    }
+
+    // Enumerate record positions (modified SeekCountry)
+    private IEnumerable<int> WalkRecords(int offset, int depth)
+    {
+        byte[] buf = new byte[2 * MAX_RECORD_LENGTH];
+        int[] x = new int[2];
+
+        if (depth >=0)
+        {
             try
             {
-                Seek_country = SeekCountry(ipnum);
-                if (Seek_country == databaseSegments[0])
-                {
-                    return null;
-                }
-                record_pointer = Seek_country + ((2 * recordLength - 1) * databaseSegments[0]);
                 if ((dboptions & GEOIP_MEMORY_CACHE) == 1)
                 {
-                    Array.Copy(dbbuffer, record_pointer, record_buf, 0, Math.Min(dbbuffer.Length - record_pointer, FULL_RECORD_LENGTH));
+                    for (int i = 0; i < (2 * MAX_RECORD_LENGTH); i++)
+                    {
+                        buf[i] = dbbuffer[i + (2 * recordLength * offset)];
+                    }
                 }
                 else
                 {
                     lock (ioLock)
                     {
-                        file.Seek(record_pointer, SeekOrigin.Begin);
-                        file.Read(record_buf, 0, FULL_RECORD_LENGTH);
+                        file.Seek(2 * recordLength * offset, SeekOrigin.Begin);
+                        file.Read(buf, 0, 2 * MAX_RECORD_LENGTH);
                     }
                 }
-                for (int a0 = 0; a0 < FULL_RECORD_LENGTH; a0++)
+            }
+            catch (IOException)
+            {
+                Console.Write("IO Exception");
+            }
+            for (int i = 0; i < 2; i++)
+            {
+                x[i] = 0;
+                for (int j = 0; j < recordLength; j++)
                 {
-                    record_buf2[a0] = Convert.ToChar(record_buf[a0]);
+                    int y = buf[(i * recordLength) + j];
+                    if (y < 0)
+                    {
+                        y += 256;
+                    }
+                    x[i] += (y << (j * 8));
                 }
-                // get country
-                record.countryCode = countryCode[unsignedByteToInt(record_buf[0])];
-                record.countryName = countryName[unsignedByteToInt(record_buf[0])];
-                record_buf_offset++;
+            }
+
+            // 1st branch
+            {
+                if (x[1] >= databaseSegments[0])
+                {
+                    yield return x[1];
+                }
+                else
+                {
+                    foreach (int v in WalkRecords(x[1], --depth))
+                    {
+                        yield return v;
+                    }
+                }
+
+            }
+            // 2nd branch
+            {
+                if (x[0] >= databaseSegments[0])
+                {
+                    yield return x[0];
+                }
+                else
+                {
+                    foreach (int v in WalkRecords(x[0], --depth))
+                    {
+                        yield return v;
+                    }
+                }
+
+            }
+        }
+    }
+
+    private Location getRecord(int Seek_country)
+    {
+        int record_pointer;
+        byte[] record_buf = new byte[FULL_RECORD_LENGTH];
+        char[] record_buf2 = new char[FULL_RECORD_LENGTH];
+        int record_buf_offset = 0;
+        Location record = new Location();
+        int str_length = 0;
+        int j;
+        double latitude = 0, longitude = 0;
+
+        try {
+            if (Seek_country == databaseSegments[0]) {
+                return null;
+            }
+            record_pointer = Seek_country + ((2 * recordLength - 1) * databaseSegments[0]);
+            if ((dboptions & GEOIP_MEMORY_CACHE) == 1){
+              Array.Copy(dbbuffer, record_pointer, record_buf, 0, Math.Min(dbbuffer.Length - record_pointer, FULL_RECORD_LENGTH));
+	    } else {
+	      lock ( ioLock ){
+	        file.Seek(record_pointer,SeekOrigin.Begin);
+                file.Read(record_buf,0,FULL_RECORD_LENGTH);
+	      }
+	    }
+	    for (int a0 = 0;a0 < FULL_RECORD_LENGTH;a0++){
+                record_buf2[a0] = Convert.ToChar(record_buf[a0]);
+	    }
+            // get country
+            record.countryCode = countryCode[unsignedByteToInt(record_buf[0])];
+            record.countryName = countryName[unsignedByteToInt(record_buf[0])];
+            record_buf_offset++;
 
                 // get region
                 while (record_buf[record_buf_offset + str_length] != '\0')
