@@ -7,7 +7,7 @@ namespace MaxMind.GeoIP
 {
     static class Version
     {
-        public const string AssemblyVersion = "1.1.0";
+        public const string AssemblyVersion = "1.2.0";
         public const string AssemblyFileVersion = AssemblyVersion;
         public const string AssemblyInformationalVersion = AssemblyVersion;
         public const bool IsStable = AssemblyInformationalVersion == AssemblyVersion;
